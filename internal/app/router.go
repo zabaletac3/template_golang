@@ -16,6 +16,7 @@ func registerRoutes(router *gin.Engine) {
 	gin.DefaultErrorWriter = io.Discard
 
 	// Custom middlewares
+	router.Use(middleware.RequestID())
 	router.Use(middleware.SlogLogger())
 	router.Use(middleware.SlogRecovery())
 

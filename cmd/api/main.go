@@ -24,14 +24,15 @@ func main() {
 
 	server := app.NewServer(cfg)
 
-	logger.Default().Info("server_running",
-		"env", cfg.Env,
-		"port", cfg.Port,
-	)
+	logger.Default().Info(context.Background(),
+	"server_running",
+	"port", cfg.Port,
+	"env", cfg.Env,
+)
 
 	go func (){
 		if err := server.Start(); err != nil {
-			logger.Default().Error("server_error", "error", err)
+			logger.Default().Error(context.Background(), "server_error", "error", err)
 		}
 	}()
 
@@ -39,7 +40,7 @@ func main() {
 
 	server.Shutdown(context.Background())
 
-	logger.Default().Info("server_stopped")
+	logger.Default().Info(context.Background(), "server_stopped")
 
 	os.Exit(0)
 }

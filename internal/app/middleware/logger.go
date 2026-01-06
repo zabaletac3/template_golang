@@ -16,7 +16,7 @@ func SlogLogger() gin.HandlerFunc {
 
 		duration := time.Since(start)
 
-		logger.Default().Info("http_request",
+		logger.Default().Info(c.Request.Context(), "http_request",
 			"method", c.Request.Method,
 			"path", c.Request.URL.Path,
 			"status", c.Writer.Status(),

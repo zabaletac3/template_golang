@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
-	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/eren_dev/go_server/internal/app"
 	"github.com/eren_dev/go_server/internal/app/health"
+	"github.com/eren_dev/go_server/internal/app/lifecycle"
 	"github.com/eren_dev/go_server/internal/config"
 	"github.com/eren_dev/go_server/internal/platform/logger"
 )
@@ -22,6 +23,8 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 
 	defer stop()
+
+	workers := lifecycle.NewWorkers()
 
 	server := app.NewServer(cfg)
 
@@ -43,11 +46,11 @@ func main() {
 	<-ctx.Done()
 
 	// Server stopped then set to not ready
-	health.SetReady(false)
-
-	server.Shutdown(context.Background())
-
-	logger.Default().Info(context.Background(), "server_stopped")
-
-	os.Exit(0)
+	shutdowner := lifecycle.NewShutdowner(
+		server,
+		workers,
+		10*time.Second,
+	)
+	
+	shutdowner.Shutdown(context.Background())
 }

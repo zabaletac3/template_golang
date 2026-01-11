@@ -9,6 +9,7 @@ import (
 
 	"github.com/eren_dev/go_server/internal/config"
 	"github.com/eren_dev/go_server/internal/modules/health"
+	"github.com/eren_dev/go_server/internal/shared/database"
 	"github.com/eren_dev/go_server/internal/shared/httpx"
 	"github.com/eren_dev/go_server/internal/shared/middleware"
 )
@@ -17,7 +18,7 @@ type Server struct {
 	httpServer *http.Server
 }
 
-func NewServer(cfg *config.Config) (*Server, error) {
+func NewServer(cfg *config.Config, db *database.MongoDB) (*Server, error) {
 	gin.SetMode(gin.ReleaseMode)
 
 	router := gin.New()
@@ -39,7 +40,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	router.NoMethod(httpx.MethodNotAllowedHandler())
 
 	health.RegisterRoutes(router)
-	registerRoutes(router)
+	registerRoutes(router, db)
 
 	return &Server{
 		httpServer: &http.Server{

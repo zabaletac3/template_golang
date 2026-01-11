@@ -48,7 +48,7 @@ func main() {
 
 	workers := lifecycle.NewWorkers()
 
-	server, err := app.NewServer(cfg)
+	server, err := app.NewServer(cfg, db)
 	if err != nil {
 		logger.Default().Error(context.Background(), "server_error", "error", err)
 		os.Exit(1)

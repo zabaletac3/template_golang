@@ -3,6 +3,7 @@ package httpx
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	sharedErrors "github.com/eren_dev/go_server/internal/shared/errors"
 )
@@ -13,17 +14,47 @@ type ErrorResponse struct {
 }
 
 func FromError(err error) (int, ErrorResponse) {
+	errMsg := err.Error()
+
+	if strings.Contains(errMsg, "validation") || strings.Contains(errMsg, "binding") {
+		return http.StatusBadRequest, ErrorResponse{
+			Code:    "VALIDATION_ERROR",
+			Message: errMsg,
+		}
+	}
+
+	if strings.Contains(errMsg, "not found") {
+		return http.StatusNotFound, ErrorResponse{
+			Code:    "NOT_FOUND",
+			Message: errMsg,
+		}
+	}
+
+	if strings.Contains(errMsg, "already exists") || strings.Contains(errMsg, "duplicate") {
+		return http.StatusConflict, ErrorResponse{
+			Code:    "CONFLICT",
+			Message: errMsg,
+		}
+	}
+
+	if strings.Contains(errMsg, "invalid") {
+		return http.StatusBadRequest, ErrorResponse{
+			Code:    "BAD_REQUEST",
+			Message: errMsg,
+		}
+	}
+
 	switch {
 	case errors.Is(err, sharedErrors.ErrInvalidInput):
 		return http.StatusBadRequest, ErrorResponse{
 			Code:    "INVALID_INPUT",
-			Message: err.Error(),
+			Message: errMsg,
 		}
 
 	case errors.Is(err, sharedErrors.ErrBadRequest):
 		return http.StatusBadRequest, ErrorResponse{
 			Code:    "BAD_REQUEST",
-			Message: err.Error(),
+			Message: errMsg,
 		}
 
 	case errors.Is(err, sharedErrors.ErrUnauthorized):
@@ -35,13 +66,13 @@ func FromError(err error) (int, ErrorResponse) {
 	case errors.Is(err, sharedErrors.ErrNotFound):
 		return http.StatusNotFound, ErrorResponse{
 			Code:    "NOT_FOUND",
-			Message: err.Error(),
+			Message: errMsg,
 		}
 
 	case errors.Is(err, sharedErrors.ErrConflict):
 		return http.StatusConflict, ErrorResponse{
 			Code:    "CONFLICT",
-			Message: err.Error(),
+			Message: errMsg,
 		}
 
 	default:

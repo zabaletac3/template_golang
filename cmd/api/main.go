@@ -14,6 +14,7 @@ import (
 	"github.com/eren_dev/go_server/internal/config"
 	"github.com/eren_dev/go_server/internal/modules/health"
 	"github.com/eren_dev/go_server/internal/platform/logger"
+	"github.com/eren_dev/go_server/internal/shared/database"
 )
 
 func main() {
@@ -31,6 +32,19 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	db, err := database.NewProvider(cfg)
+	if err != nil {
+		logger.Default().Error(context.Background(), "database_connection_failed", "error", err)
+		os.Exit(1)
+	}
+
+	if db != nil {
+		logger.Default().Info(context.Background(), "database_connected", "database", cfg.MongoDatabase)
+		health.SetDatabase(db)
+	} else {
+		logger.Default().Info(context.Background(), "database_disabled", "reason", "MONGO_DATABASE not configured")
+	}
 
 	workers := lifecycle.NewWorkers()
 
@@ -51,6 +65,12 @@ func main() {
 	health.SetReady(true)
 
 	<-ctx.Done()
+
+	if db != nil {
+		if err := db.Close(context.Background()); err != nil {
+			logger.Default().Error(context.Background(), "database_close_error", "error", err)
+		}
+	}
 
 	shutdowner := lifecycle.NewShutdowner(server, workers, 10*time.Second)
 	shutdowner.Shutdown(context.Background())

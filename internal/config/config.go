@@ -48,6 +48,11 @@ type Config struct {
 
 	// Trusted Proxies
 	TrustedProxies []string
+
+	// MongoDB
+	MongoURI      string
+	MongoDatabase string
+	MongoTimeout  time.Duration
 }
 
 func Load() *Config {
@@ -91,6 +96,11 @@ func Load() *Config {
 
 		// Proxies
 		TrustedProxies: getEnvSlice("TRUSTED_PROXIES", nil),
+
+		// MongoDB
+		MongoURI:      getEnv("MONGO_URI", "mongodb://localhost:27017"),
+		MongoDatabase: getEnv("MONGO_DATABASE", ""),
+		MongoTimeout:  time.Duration(getEnvInt("MONGO_TIMEOUT_SECS", 10)) * time.Second,
 	}
 }
 

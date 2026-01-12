@@ -44,6 +44,28 @@ func (r *Repository) Create(ctx context.Context, dto *CreateUserDTO) (*User, err
 	return user, nil
 }
 
+func (r *Repository) CreateWithPassword(ctx context.Context, name, email, hashedPassword string) (*User, error) {
+	now := time.Now()
+	user := &User{
+		Name:      name,
+		Email:     email,
+		Password:  hashedPassword,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+
+	result, err := r.collection.InsertOne(ctx, user)
+	if err != nil {
+		if mongo.IsDuplicateKeyError(err) {
+			return nil, ErrEmailExists
+		}
+		return nil, err
+	}
+
+	user.ID = result.InsertedID.(primitive.ObjectID)
+	return user, nil
+}
+
 func (r *Repository) FindAll(ctx context.Context, params pagination.Params) ([]*User, int64, error) {
 	total, err := r.collection.CountDocuments(ctx, bson.M{})
 	if err != nil {
@@ -77,6 +99,19 @@ func (r *Repository) FindByID(ctx context.Context, id string) (*User, error) {
 
 	var user User
 	err = r.collection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&user)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, ErrUserNotFound
+		}
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (r *Repository) FindByEmail(ctx context.Context, email string) (*User, error) {
+	var user User
+	err := r.collection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, ErrUserNotFound

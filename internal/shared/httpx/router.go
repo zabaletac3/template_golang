@@ -57,3 +57,11 @@ func (r *Router) Group(relativePath string, middleware ...gin.HandlerFunc) *Rout
 
 	return newGroup(g)
 }
+
+func (r *Router) Use(middleware ...gin.HandlerFunc) {
+	if r.group != nil {
+		r.group.Use(middleware...)
+	} else {
+		r.engine.Use(middleware...)
+	}
+}

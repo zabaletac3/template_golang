@@ -45,7 +45,7 @@ func NewServer(cfg *config.Config, db *database.MongoDB) (*Server, error) {
 	router.StaticFile("/docs/openapi.json", "./internal/app/docs/swagger.json")
 
 	health.RegisterRoutes(router)
-	registerRoutes(router, db)
+	registerRoutes(router, db, cfg)
 
 	return &Server{
 		httpServer: &http.Server{

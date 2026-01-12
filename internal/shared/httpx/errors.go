@@ -37,6 +37,20 @@ func FromError(err error) (int, ErrorResponse) {
 		}
 	}
 
+	if strings.Contains(errMsg, "invalid credentials") {
+		return http.StatusUnauthorized, ErrorResponse{
+			Code:    "UNAUTHORIZED",
+			Message: errMsg,
+		}
+	}
+
+	if strings.Contains(errMsg, "token") && (strings.Contains(errMsg, "invalid") || strings.Contains(errMsg, "expired")) {
+		return http.StatusUnauthorized, ErrorResponse{
+			Code:    "UNAUTHORIZED",
+			Message: errMsg,
+		}
+	}
+
 	if strings.Contains(errMsg, "invalid") {
 		return http.StatusBadRequest, ErrorResponse{
 			Code:    "BAD_REQUEST",

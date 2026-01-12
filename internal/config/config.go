@@ -53,6 +53,11 @@ type Config struct {
 	MongoURI      string
 	MongoDatabase string
 	MongoTimeout  time.Duration
+
+	// JWT
+	JWTSecret            string
+	JWTExpiration        time.Duration
+	JWTRefreshExpiration time.Duration
 }
 
 func Load() *Config {
@@ -101,6 +106,11 @@ func Load() *Config {
 		MongoURI:      getEnv("MONGO_URI", "mongodb://localhost:27017"),
 		MongoDatabase: getEnv("MONGO_DATABASE", ""),
 		MongoTimeout:  time.Duration(getEnvInt("MONGO_TIMEOUT_SECS", 10)) * time.Second,
+
+		// JWT
+		JWTSecret:            getEnv("JWT_SECRET", ""),
+		JWTExpiration:        time.Duration(getEnvInt("JWT_EXPIRATION_MINS", 15)) * time.Minute,
+		JWTRefreshExpiration: time.Duration(getEnvInt("JWT_REFRESH_EXPIRATION_DAYS", 7)) * 24 * time.Hour,
 	}
 }
 

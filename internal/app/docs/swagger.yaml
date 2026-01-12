@@ -38,6 +38,80 @@ definitions:
           $ref: '#/definitions/github_com_eren_dev_go_server_internal_shared_validation.FieldError'
         type: array
     type: object
+  internal_modules_auth.LoginDTO:
+    properties:
+      email:
+        description: Email del usuario
+        example: john@example.com
+        type: string
+      password:
+        description: Contraseña
+        example: secret123
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  internal_modules_auth.RefreshDTO:
+    properties:
+      refresh_token:
+        description: Refresh token
+        example: eyJhbGciOiJIUzI1NiIs...
+        type: string
+    required:
+    - refresh_token
+    type: object
+  internal_modules_auth.RegisterDTO:
+    properties:
+      email:
+        description: Email del usuario
+        example: john@example.com
+        type: string
+      name:
+        description: Nombre del usuario
+        example: John Doe
+        minLength: 2
+        type: string
+      password:
+        description: Contraseña (mínimo 6 caracteres)
+        example: secret123
+        minLength: 6
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+  internal_modules_auth.TokenResponse:
+    properties:
+      access_token:
+        description: Access token JWT
+        example: eyJhbGciOiJIUzI1NiIs...
+        type: string
+      expires_in:
+        description: Tiempo de expiración en segundos
+        example: 900
+        type: integer
+      refresh_token:
+        description: Refresh token JWT
+        example: eyJhbGciOiJIUzI1NiIs...
+        type: string
+    type: object
+  internal_modules_auth.UserInfo:
+    properties:
+      email:
+        description: Email del usuario
+        example: john@example.com
+        type: string
+      id:
+        description: ID del usuario
+        example: 507f1f77bcf86cd799439011
+        type: string
+      name:
+        description: Nombre del usuario
+        example: John Doe
+        type: string
+    type: object
   internal_modules_users.CreateUserDTO:
     properties:
       email:
@@ -111,6 +185,125 @@ info:
   title: Go Server API
   version: "1.0"
 paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Autentica un usuario y retorna tokens
+      parameters:
+      - description: Credenciales
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_auth.LoginDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_modules_auth.TokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_eren_dev_go_server_internal_shared_validation.ValidationError'
+        "401":
+          description: Credenciales inválidas
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Iniciar sesión
+      tags:
+      - auth
+  /auth/me:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene información del usuario autenticado
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_modules_auth.UserInfo'
+        "401":
+          description: No autorizado
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Usuario actual
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Genera un nuevo access token usando el refresh token
+      parameters:
+      - description: Refresh token
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_auth.RefreshDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_modules_auth.TokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_eren_dev_go_server_internal_shared_validation.ValidationError'
+        "401":
+          description: Token inválido
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Renovar token
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Crea una nueva cuenta de usuario
+      parameters:
+      - description: Datos de registro
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_auth.RegisterDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_modules_auth.TokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_eren_dev_go_server_internal_shared_validation.ValidationError'
+        "409":
+          description: Email ya existe
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Registrar usuario
+      tags:
+      - auth
   /users:
     get:
       consumes:

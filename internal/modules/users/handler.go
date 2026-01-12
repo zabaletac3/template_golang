@@ -2,6 +2,9 @@ package users
 
 import (
 	"github.com/gin-gonic/gin"
+
+	"github.com/eren_dev/go_server/internal/shared/pagination"
+	"github.com/eren_dev/go_server/internal/shared/validation"
 )
 
 type Handler struct {
@@ -15,14 +18,15 @@ func NewHandler(service *Service) *Handler {
 func (h *Handler) Create(c *gin.Context) (any, error) {
 	var dto CreateUserDTO
 	if err := c.ShouldBindJSON(&dto); err != nil {
-		return nil, err
+		return nil, validation.Validate(err)
 	}
 
 	return h.service.Create(c.Request.Context(), &dto)
 }
 
 func (h *Handler) FindAll(c *gin.Context) (any, error) {
-	return h.service.FindAll(c.Request.Context())
+	params := pagination.FromContext(c)
+	return h.service.FindAll(c.Request.Context(), params)
 }
 
 func (h *Handler) FindByID(c *gin.Context) (any, error) {
@@ -35,7 +39,7 @@ func (h *Handler) Update(c *gin.Context) (any, error) {
 
 	var dto UpdateUserDTO
 	if err := c.ShouldBindJSON(&dto); err != nil {
-		return nil, err
+		return nil, validation.Validate(err)
 	}
 
 	return h.service.Update(c.Request.Context(), id, &dto)

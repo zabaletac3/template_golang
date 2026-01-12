@@ -7,8 +7,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/eren_dev/go_server/internal/shared/database"
+	"github.com/eren_dev/go_server/internal/shared/pagination"
 )
 
 type Repository struct {
@@ -42,19 +44,29 @@ func (r *Repository) Create(ctx context.Context, dto *CreateUserDTO) (*User, err
 	return user, nil
 }
 
-func (r *Repository) FindAll(ctx context.Context) ([]*User, error) {
-	cursor, err := r.collection.Find(ctx, bson.M{})
+func (r *Repository) FindAll(ctx context.Context, params pagination.Params) ([]*User, int64, error) {
+	total, err := r.collection.CountDocuments(ctx, bson.M{})
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+
+	opts := options.Find().
+		SetSkip(params.Skip).
+		SetLimit(params.Limit).
+		SetSort(bson.D{{Key: "created_at", Value: -1}})
+
+	cursor, err := r.collection.Find(ctx, bson.M{}, opts)
+	if err != nil {
+		return nil, 0, err
 	}
 	defer cursor.Close(ctx)
 
 	var users []*User
 	if err := cursor.All(ctx, &users); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return users, nil
+	return users, total, nil
 }
 
 func (r *Repository) FindByID(ctx context.Context, id string) (*User, error) {

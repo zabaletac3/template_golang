@@ -15,6 +15,6 @@ func RegisterRoutes(r *httpx.Router, db *database.MongoDB) {
 	users.POST("", handler.Create)
 	users.GET("", handler.FindAll)
 	users.GET("/:id", handler.FindByID)
-	users.PUT("/:id", handler.Update)
+	users.PATCH("/:id", handler.Update)
 	users.DELETE("/:id", handler.Delete)
 }

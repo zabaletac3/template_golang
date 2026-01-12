@@ -1,6 +1,10 @@
 package users
 
-import "context"
+import (
+	"context"
+
+	"github.com/eren_dev/go_server/internal/shared/pagination"
+)
 
 type Service struct {
 	repo *Repository
@@ -8,6 +12,11 @@ type Service struct {
 
 func NewService(repo *Repository) *Service {
 	return &Service{repo: repo}
+}
+
+type PaginatedUsers struct {
+	Data       []*UserResponse       `json:"data"`
+	Pagination pagination.Response `json:"pagination"`
 }
 
 func (s *Service) Create(ctx context.Context, dto *CreateUserDTO) (*UserResponse, error) {
@@ -18,12 +27,16 @@ func (s *Service) Create(ctx context.Context, dto *CreateUserDTO) (*UserResponse
 	return ToResponse(user), nil
 }
 
-func (s *Service) FindAll(ctx context.Context) ([]*UserResponse, error) {
-	users, err := s.repo.FindAll(ctx)
+func (s *Service) FindAll(ctx context.Context, params pagination.Params) (*PaginatedUsers, error) {
+	users, total, err := s.repo.FindAll(ctx, params)
 	if err != nil {
 		return nil, err
 	}
-	return ToResponseList(users), nil
+
+	return &PaginatedUsers{
+		Data:       ToResponseList(users),
+		Pagination: pagination.NewResponse(params, total),
+	}, nil
 }
 
 func (s *Service) FindByID(ctx context.Context, id string) (*UserResponse, error) {

@@ -36,6 +36,7 @@ jobs:
           source: "."
           target: "~/repositories/go_server"
           overwrite: true
+          timeout: 120s
 
       - name: Deploy on EC2
         uses: appleboy/ssh-action@v1.0.3
@@ -43,6 +44,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 30m
           script: |
             set -e
             cd ~/repositories/go_server

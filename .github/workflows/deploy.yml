@@ -42,7 +42,7 @@ jobs:
           target: "~/repositories/go_server"
           overwrite: true
 
-      - name: Start server on EC2
+      - name: Setup and start service
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -50,28 +50,36 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/repositories/go_server
-            
-            # Detener proceso anterior si existe
-            pkill -f "./server" || true
-            sleep 2
-            
-            # Dar permisos de ejecución
             chmod +x server
             
-            # Verificar .env
-            echo "=== .env content ==="
-            cat .env
-            echo "===================="
+            # Crear servicio systemd
+            sudo tee /etc/systemd/system/go-api.service > /dev/null << 'EOF'
+            [Unit]
+            Description=Go API Server
+            After=network.target
             
-            # Iniciar servidor en background
-            nohup ./server > app.log 2>&1 &
+            [Service]
+            Type=simple
+            User=ubuntu
+            WorkingDirectory=/home/ubuntu/repositories/go_server
+            EnvironmentFile=/home/ubuntu/repositories/go_server/.env
+            ExecStart=/home/ubuntu/repositories/go_server/server
+            Restart=always
+            RestartSec=5
+            
+            [Install]
+            WantedBy=multi-user.target
+            EOF
+            
+            # Recargar systemd y reiniciar servicio
+            sudo systemctl daemon-reload
+            sudo systemctl enable go-api
+            sudo systemctl restart go-api
             
             # Esperar y verificar
-            sleep 5
+            sleep 3
+            sudo systemctl status go-api --no-pager
             
-            if curl -sf http://localhost:8080/health; then
-              echo "✅ Health OK - Server running!"
-            else
-              echo "❌ Server failed to start. Logs:"
-              cat app.log
-            fi
+            echo ""
+            echo "=== Testing health endpoint ==="
+            curl -sf http://localhost:8080/health && echo " ✅ Server running!" || echo " ❌ Health check failed"

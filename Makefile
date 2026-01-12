@@ -5,7 +5,7 @@ LOG_DIR=logs
 
 AIR_BIN=$(shell go env GOPATH)/bin/air
 
-.PHONY: dev build run clean test lint
+.PHONY: dev build run clean test lint docker-build docker-up docker-down docker-logs
 
 ## 🔥 Desarrollo con hot reload
 dev:
@@ -39,3 +39,26 @@ test:
 ## 🔍 Lint (requiere golangci-lint)
 lint:
 	golangci-lint run
+
+## 🐳 Docker build
+docker-build:
+	@echo "🐳 Building Docker image..."
+	docker build -t $(APP_NAME) .
+
+## 🚀 Docker up (producción con Traefik)
+docker-up:
+	@echo "🚀 Starting containers..."
+	@touch acme.json && chmod 600 acme.json
+	docker compose up -d
+
+## 🛑 Docker down
+docker-down:
+	@echo "🛑 Stopping containers..."
+	docker compose down
+
+## 📋 Docker logs
+docker-logs:
+	docker compose logs -f api
+
+## 🔄 Docker restart
+docker-restart: docker-down docker-up

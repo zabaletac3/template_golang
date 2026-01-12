@@ -6,65 +6,65 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Deploy on EC2
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Build binary
+        run: |
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o server ./cmd/api
+
+      - name: Create .env file
+        run: |
+          cat > .env << EOF
+          APP_ENV=${{ secrets.APP_ENV }}
+          PORT=${{ secrets.PORT }}
+          MONGO_URI=${{ secrets.MONGO_URI }}
+          MONGO_DATABASE=${{ secrets.MONGO_DATABASE }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          JWT_EXPIRATION_MINS=${{ secrets.JWT_EXPIRATION_MINS }}
+          JWT_REFRESH_EXPIRATION_DAYS=${{ secrets.JWT_REFRESH_EXPIRATION_DAYS }}
+          DOMAIN=${{ secrets.DOMAIN }}
+          ACME_EMAIL=${{ secrets.ACME_EMAIL }}
+          EOF
+
+      - name: Copy files to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "server,.env"
+          target: "~/repositories/go_server"
+          overwrite: true
+
+      - name: Start server on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
-          command_timeout: 30m
           script: |
             set -e
+            cd ~/repositories/go_server
             
-            # Crear directorio
-            mkdir -p ~/repositories
-            cd ~/repositories
+            # Detener proceso anterior si existe
+            pkill -f "./server" || true
             
-            # Clonar o actualizar repo
-            if [ -d "go_server" ]; then
-              cd go_server
-              git fetch origin
-              git reset --hard origin/main
-            else
-              git clone https://github.com/${{ github.repository }}.git go_server
-              cd go_server
-            fi
+            # Dar permisos de ejecución
+            chmod +x server
             
-            # Crear .env desde variables
-            cat > .env << 'ENVEOF'
-            APP_ENV=${{ secrets.APP_ENV }}
-            PORT=${{ secrets.PORT }}
-            MONGO_URI=${{ secrets.MONGO_URI }}
-            MONGO_DATABASE=${{ secrets.MONGO_DATABASE }}
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            JWT_EXPIRATION_MINS=${{ secrets.JWT_EXPIRATION_MINS }}
-            JWT_REFRESH_EXPIRATION_DAYS=${{ secrets.JWT_REFRESH_EXPIRATION_DAYS }}
-            DOMAIN=${{ secrets.DOMAIN }}
-            ACME_EMAIL=${{ secrets.ACME_EMAIL }}
-            ENVEOF
+            # Iniciar servidor en background
+            nohup ./server > app.log 2>&1 &
             
-            # Permisos SSL
-            touch acme.json && chmod 600 acme.json
-            
-            # Build y deploy
-            docker compose down --remove-orphans || true
-            
-            if [ -z "${{ secrets.DOMAIN }}" ] || [ "${{ secrets.DOMAIN }}" = "localhost" ]; then
-              echo "🚀 Deploy sin SSL (docker-compose.simple.yml)"
-              docker compose -f docker-compose.simple.yml build
-              docker compose -f docker-compose.simple.yml up -d
-            else
-              echo "🚀 Deploy con Traefik + SSL"
-              docker compose build
-              docker compose up -d
-            fi
-            
-            # Verificar
-            echo "⏳ Esperando inicio..."
-            sleep 10
-            docker compose ps || docker compose -f docker-compose.simple.yml ps
-            curl -sf http://localhost:8080/health && echo "✅ Health OK" || echo "⚠️ Verificar logs con: docker compose logs"
+            # Esperar y verificar
+            sleep 5
+            curl -sf http://localhost:8080/health && echo "✅ Health OK" || cat app.log

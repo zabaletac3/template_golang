@@ -59,6 +59,7 @@ jobs:
           script: |
             set -e
             APP_DIR="/home/ubuntu/app"
+            BACKTICK='`'
             
             echo "=== Preparando directorio ==="
             mkdir -p $APP_DIR
@@ -134,7 +135,7 @@ jobs:
                   - .env
                 labels:
                   - "traefik.enable=true"
-                  - "traefik.http.routers.api.rule=Host(\\\`${DOMAIN}\\\`)"
+                  - "traefik.http.routers.api.rule=Host(${BACKTICK}${DOMAIN}${BACKTICK})"
                   - "traefik.http.routers.api.entrypoints=websecure"
                   - "traefik.http.routers.api.tls.certresolver=letsencrypt"
                   - "traefik.http.services.api.loadbalancer.server.port=8080"

@@ -1,85 +1,91 @@
-name: Deploy to EC2
+name: Deploy to EC2 (Docker)
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
-  build:
+  build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          go-version: '1.24'
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build binary
-        run: |
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o server ./cmd/api
-
-      - name: Create .env file
-        run: |
-          echo "APP_ENV=${{ secrets.APP_ENV }}" > .env
-          echo "PORT=${{ secrets.PORT }}" >> .env
-          echo "MONGO_URI=${{ secrets.MONGO_URI }}" >> .env
-          echo "MONGO_DATABASE=${{ secrets.MONGO_DATABASE }}" >> .env
-          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
-          echo "JWT_EXPIRATION_MINS=${{ secrets.JWT_EXPIRATION_MINS }}" >> .env
-          echo "JWT_REFRESH_EXPIRATION_DAYS=${{ secrets.JWT_REFRESH_EXPIRATION_DAYS }}" >> .env
-
-      - name: Copy files to EC2
-        uses: appleboy/scp-action@v0.1.7
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "server,.env"
-          target: "~/repositories/go_server"
-          overwrite: true
+          context: .
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
-      - name: Setup and start service
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd ~/repositories/go_server
-            chmod +x server
-            
-            # Crear servicio systemd
-            sudo tee /etc/systemd/system/go-api.service > /dev/null << 'EOF'
-            [Unit]
-            Description=Go API Server
-            After=network.target
-            
-            [Service]
-            Type=simple
-            User=ubuntu
-            WorkingDirectory=/home/ubuntu/repositories/go_server
-            EnvironmentFile=/home/ubuntu/repositories/go_server/.env
-            ExecStart=/home/ubuntu/repositories/go_server/server
-            Restart=always
-            RestartSec=5
-            
-            [Install]
-            WantedBy=multi-user.target
-            EOF
-            
-            # Recargar systemd y reiniciar servicio
+            echo "=== Cleaning up old non-Docker setup ==="
+            # Stop and disable systemd service
+            sudo systemctl stop go-api 2>/dev/null || true
+            sudo systemctl disable go-api 2>/dev/null || true
+            sudo rm -f /etc/systemd/system/go-api.service
             sudo systemctl daemon-reload
-            sudo systemctl enable go-api
-            sudo systemctl restart go-api
             
-            # Esperar y verificar
-            sleep 3
-            sudo systemctl status go-api --no-pager
+            # Kill any remaining process
+            pkill -f "./server" || true
             
+            # Clean old files (optional, keep if you want)
+            # rm -rf ~/repositories/go_server
+            
+            echo "=== Deploying with Docker ==="
+            # Pull image (public)
+            docker pull ghcr.io/zabaletac3/template_golang:latest
+            
+            # Stop and remove old container
+            docker stop go-api 2>/dev/null || true
+            docker rm go-api 2>/dev/null || true
+            
+            # Run new container
+            docker run -d \
+              --name go-api \
+              --restart unless-stopped \
+              -p 80:8080 \
+              -e APP_ENV=${{ secrets.APP_ENV }} \
+              -e PORT=8080 \
+              -e "MONGO_URI=${{ secrets.MONGO_URI }}" \
+              -e MONGO_DATABASE=${{ secrets.MONGO_DATABASE }} \
+              -e "JWT_SECRET=${{ secrets.JWT_SECRET }}" \
+              -e JWT_EXPIRATION_MINS=${{ secrets.JWT_EXPIRATION_MINS }} \
+              -e JWT_REFRESH_EXPIRATION_DAYS=${{ secrets.JWT_REFRESH_EXPIRATION_DAYS }} \
+              ghcr.io/zabaletac3/template_golang:latest
+            
+            # Wait and verify
+            sleep 5
             echo ""
-            echo "=== Testing health endpoint ==="
-            curl -sf http://localhost:8080/health && echo " ✅ Server running!" || echo " ❌ Health check failed"
+            echo "=== Container Status ==="
+            docker ps | grep go-api || echo "Container not running!"
+            echo ""
+            echo "=== Health Check ==="
+            curl -sf http://localhost/health && echo " ✅ Docker running!" || docker logs go-api --tail 30

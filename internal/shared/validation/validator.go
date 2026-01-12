@@ -9,12 +9,19 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+// FieldError error de campo
+// @name FieldError
 type FieldError struct {
-	Field   string `json:"field"`
-	Message string `json:"message"`
+	// Nombre del campo con error
+	Field string `json:"field" example:"email"`
+	// Mensaje de error
+	Message string `json:"message" example:"must be a valid email"`
 }
 
+// ValidationError errores de validación
+// @name ValidationError
 type ValidationError struct {
+	// Lista de errores por campo
 	Errors []FieldError `json:"errors"`
 }
 

@@ -14,11 +14,6 @@ func NewService(repo *Repository) *Service {
 	return &Service{repo: repo}
 }
 
-type PaginatedUsers struct {
-	Data       []*UserResponse       `json:"data"`
-	Pagination pagination.Response `json:"pagination"`
-}
-
 func (s *Service) Create(ctx context.Context, dto *CreateUserDTO) (*UserResponse, error) {
 	user, err := s.repo.Create(ctx, dto)
 	if err != nil {
@@ -27,15 +22,16 @@ func (s *Service) Create(ctx context.Context, dto *CreateUserDTO) (*UserResponse
 	return ToResponse(user), nil
 }
 
-func (s *Service) FindAll(ctx context.Context, params pagination.Params) (*PaginatedUsers, error) {
+func (s *Service) FindAll(ctx context.Context, params pagination.Params) (*PaginatedUsersResponse, error) {
 	users, total, err := s.repo.FindAll(ctx, params)
 	if err != nil {
 		return nil, err
 	}
 
-	return &PaginatedUsers{
+	paginationInfo := pagination.NewPaginationInfo(params, total)
+	return &PaginatedUsersResponse{
 		Data:       ToResponseList(users),
-		Pagination: pagination.NewResponse(params, total),
+		Pagination: &paginationInfo,
 	}, nil
 }
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/eren_dev/go_server/internal/app/docs"
 	"github.com/eren_dev/go_server/internal/config"
 	"github.com/eren_dev/go_server/internal/modules/health"
 	"github.com/eren_dev/go_server/internal/shared/database"
@@ -38,6 +39,10 @@ func NewServer(cfg *config.Config, db *database.MongoDB) (*Server, error) {
 
 	router.NoRoute(httpx.NotFoundHandler())
 	router.NoMethod(httpx.MethodNotAllowedHandler())
+
+	// Documentation
+	router.GET("/docs", docs.ScalarHandler())
+	router.StaticFile("/docs/openapi.json", "./internal/app/docs/swagger.json")
 
 	health.RegisterRoutes(router)
 	registerRoutes(router, db)

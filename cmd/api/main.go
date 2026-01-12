@@ -17,6 +17,25 @@ import (
 	"github.com/eren_dev/go_server/internal/shared/database"
 )
 
+// @title           Go Server API
+// @version         1.0
+// @description     Template API con Go + Gin + MongoDB
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name   API Support
+// @contact.email  support@example.com
+
+// @license.name  MIT
+// @license.url   https://opensource.org/licenses/MIT
+
+// @host      localhost:8080
+// @BasePath  /api
+
+// @securityDefinitions.apikey Bearer
+// @in header
+// @name Authorization
+// @description Ingresa el token con el prefijo Bearer: Bearer <token>
+
 func main() {
 	_ = godotenv.Load(".env")
 

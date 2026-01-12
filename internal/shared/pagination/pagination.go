@@ -11,11 +11,17 @@ type Params struct {
 	Limit int64
 }
 
-type Response struct {
-	Skip       int64 `json:"skip"`
-	Limit      int64 `json:"limit"`
-	Total      int64 `json:"total"`
-	TotalPages int64 `json:"total_pages"`
+// PaginationInfo información de paginación
+// @name PaginationInfo
+type PaginationInfo struct {
+	// Registros saltados
+	Skip int64 `json:"skip" example:"0"`
+	// Límite de registros por página
+	Limit int64 `json:"limit" example:"10"`
+	// Total de registros
+	Total int64 `json:"total" example:"100"`
+	// Total de páginas
+	TotalPages int64 `json:"total_pages" example:"10"`
 }
 
 const (
@@ -43,13 +49,13 @@ func FromContext(c *gin.Context) Params {
 	}
 }
 
-func NewResponse(params Params, total int64) Response {
+func NewPaginationInfo(params Params, total int64) PaginationInfo {
 	totalPages := total / params.Limit
 	if total%params.Limit > 0 {
 		totalPages++
 	}
 
-	return Response{
+	return PaginationInfo{
 		Skip:       params.Skip,
 		Limit:      params.Limit,
 		Total:      total,

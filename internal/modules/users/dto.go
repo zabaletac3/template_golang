@@ -1,23 +1,51 @@
 package users
 
-import "time"
+import (
+	"time"
 
+	"github.com/eren_dev/go_server/internal/shared/pagination"
+)
+
+// CreateUserDTO request para crear usuario
+// @name CreateUserDTO
 type CreateUserDTO struct {
-	Name  string `json:"name" binding:"required"`
-	Email string `json:"email" binding:"required,email"`
+	// Nombre del usuario
+	Name string `json:"name" binding:"required" example:"John Doe"`
+	// Email del usuario
+	Email string `json:"email" binding:"required,email" example:"john@example.com"`
 }
 
+// UpdateUserDTO request para actualizar usuario
+// @name UpdateUserDTO
 type UpdateUserDTO struct {
-	Name  string `json:"name"`
-	Email string `json:"email" binding:"omitempty,email"`
+	// Nombre del usuario
+	Name string `json:"name" example:"Jane Doe"`
+	// Email del usuario
+	Email string `json:"email" binding:"omitempty,email" example:"jane@example.com"`
 }
 
+// UserResponse respuesta de usuario
+// @name UserResponse
 type UserResponse struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	// ID único del usuario
+	ID string `json:"id" example:"507f1f77bcf86cd799439011"`
+	// Nombre del usuario
+	Name string `json:"name" example:"John Doe"`
+	// Email del usuario
+	Email string `json:"email" example:"john@example.com"`
+	// Fecha de creación
+	CreatedAt time.Time `json:"created_at" example:"2024-01-01T00:00:00Z"`
+	// Fecha de actualización
+	UpdatedAt time.Time `json:"updated_at" example:"2024-01-01T00:00:00Z"`
+}
+
+// PaginatedUsersResponse respuesta paginada de usuarios
+// @name PaginatedUsersResponse
+type PaginatedUsersResponse struct {
+	// Lista de usuarios
+	Data []*UserResponse `json:"data"`
+	// Información de paginación
+	Pagination *pagination.PaginationInfo `json:"pagination"`
 }
 
 func ToResponse(u *User) *UserResponse {

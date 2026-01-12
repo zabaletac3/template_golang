@@ -2,13 +2,25 @@ APP_NAME=api
 CMD_DIR=cmd/api
 TMP_DIR=tmp
 LOG_DIR=logs
+DOCS_DIR=internal/app/docs
 
 AIR_BIN=$(shell go env GOPATH)/bin/air
+SWAG_BIN=$(shell go env GOPATH)/bin/swag
 
-.PHONY: dev build run clean test lint docker-build docker-up docker-down docker-logs logs-up logs-down
+.PHONY: dev build run clean test lint docs docker-build docker-up docker-down docker-logs logs-up logs-down
+
+## 📚 Generar documentación Swagger
+docs:
+	@echo "📚 Generating API documentation..."
+	@if ! command -v $(SWAG_BIN) > /dev/null; then \
+		echo "📦 Installing swag..."; \
+		go install github.com/swaggo/swag/cmd/swag@latest; \
+	fi
+	$(SWAG_BIN) init -g $(CMD_DIR)/main.go -o $(DOCS_DIR) --parseDependency --parseInternal
+	@./scripts/fix-swagger.sh
 
 ## 🔥 Desarrollo con hot reload
-dev:
+dev: docs
 	@echo "🔥 Starting development server with hot reload..."
 	@if ! command -v $(AIR_BIN) > /dev/null; then \
 		echo "📦 Installing Air..."; \
@@ -18,12 +30,12 @@ dev:
 	$(AIR_BIN) -c .air.toml 2>&1 | stdbuf -oL tee $(LOG_DIR)/app.log
 
 ## 🏗️ Build manual
-build:
+build: docs
 	@echo "🏗️ Building binary..."
 	go build -o $(TMP_DIR)/$(APP_NAME) ./$(CMD_DIR)
 
 ## ▶️ Run sin hot reload
-run: build
+run: docs build
 	@echo "▶️ Running binary..."
 	./$(TMP_DIR)/$(APP_NAME)
 
@@ -41,7 +53,7 @@ lint:
 	golangci-lint run
 
 ## 🐳 Docker build
-docker-build:
+docker-build: docs
 	@echo "🐳 Building Docker image..."
 	docker build -t $(APP_NAME) .
 

@@ -1,0 +1,268 @@
+basePath: /api
+definitions:
+  github_com_eren_dev_go_server_internal_shared_pagination.PaginationInfo:
+    properties:
+      limit:
+        description: Límite de registros por página
+        example: 10
+        type: integer
+      skip:
+        description: Registros saltados
+        example: 0
+        type: integer
+      total:
+        description: Total de registros
+        example: 100
+        type: integer
+      total_pages:
+        description: Total de páginas
+        example: 10
+        type: integer
+    type: object
+  github_com_eren_dev_go_server_internal_shared_validation.FieldError:
+    properties:
+      field:
+        description: Nombre del campo con error
+        example: email
+        type: string
+      message:
+        description: Mensaje de error
+        example: must be a valid email
+        type: string
+    type: object
+  github_com_eren_dev_go_server_internal_shared_validation.ValidationError:
+    properties:
+      errors:
+        description: Lista de errores por campo
+        items:
+          $ref: '#/definitions/github_com_eren_dev_go_server_internal_shared_validation.FieldError'
+        type: array
+    type: object
+  internal_modules_users.CreateUserDTO:
+    properties:
+      email:
+        description: Email del usuario
+        example: john@example.com
+        type: string
+      name:
+        description: Nombre del usuario
+        example: John Doe
+        type: string
+    required:
+    - email
+    - name
+    type: object
+  internal_modules_users.PaginatedUsersResponse:
+    properties:
+      data:
+        description: Lista de usuarios
+        items:
+          $ref: '#/definitions/internal_modules_users.UserResponse'
+        type: array
+      pagination:
+        allOf:
+        - $ref: '#/definitions/github_com_eren_dev_go_server_internal_shared_pagination.PaginationInfo'
+        description: Información de paginación
+    type: object
+  internal_modules_users.UpdateUserDTO:
+    properties:
+      email:
+        description: Email del usuario
+        example: jane@example.com
+        type: string
+      name:
+        description: Nombre del usuario
+        example: Jane Doe
+        type: string
+    type: object
+  internal_modules_users.UserResponse:
+    properties:
+      created_at:
+        description: Fecha de creación
+        example: "2024-01-01T00:00:00Z"
+        type: string
+      email:
+        description: Email del usuario
+        example: john@example.com
+        type: string
+      id:
+        description: ID único del usuario
+        example: 507f1f77bcf86cd799439011
+        type: string
+      name:
+        description: Nombre del usuario
+        example: John Doe
+        type: string
+      updated_at:
+        description: Fecha de actualización
+        example: "2024-01-01T00:00:00Z"
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+  description: Template API con Go + Gin + MongoDB
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Go Server API
+  version: "1.0"
+paths:
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: Obtiene una lista paginada de usuarios
+      parameters:
+      - default: 0
+        description: ' '
+        in: query
+        name: skip
+        type: integer
+      - default: 10
+        description: ' '
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_modules_users.PaginatedUsersResponse'
+      summary: Listar usuarios
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo usuario en el sistema
+      parameters:
+      - description: Datos del usuario
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_users.CreateUserDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_modules_users.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_eren_dev_go_server_internal_shared_validation.ValidationError'
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Crear usuario
+      tags:
+      - users
+  /users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Elimina un usuario por su ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Eliminar usuario
+      tags:
+      - users
+    get:
+      consumes:
+      - application/json
+      description: Obtiene un usuario por su ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_modules_users.UserResponse'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Obtener usuario
+      tags:
+      - users
+    patch:
+      consumes:
+      - application/json
+      description: Actualiza un usuario existente
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Datos a actualizar
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_users.UpdateUserDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_modules_users.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_eren_dev_go_server_internal_shared_validation.ValidationError'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Actualizar usuario
+      tags:
+      - users
+securityDefinitions:
+  Bearer:
+    description: 'Ingresa el token con el prefijo Bearer: Bearer <token>'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
